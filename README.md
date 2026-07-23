@@ -16,26 +16,29 @@ Full working code for the tutorial **"Function Calling in .NET: let an LLM call 
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Ollama](https://ollama.com) with a tool-calling model: `ollama pull llama3.1`
-- MongoDB on `localhost:27017` (`docker run -d -p 27017:27017 mongo` works fine)
+- [Docker](https://docs.docker.com/get-docker/) — MongoDB and Ollama run via `docker compose`, nothing else to install
+
+Prefer native installs? [Ollama](https://ollama.com) (`ollama pull llama3.1`) + MongoDB on `localhost:27017` work exactly the same.
+
+## Run the dependencies with Docker
+
+One command starts everything the API needs — MongoDB (already seeded with the demo order `ORD-1024`) and Ollama (llama3.1 auto-pulled by the one-shot `ollama-init` service):
+
+```bash
+docker compose up -d
+
+# first run only: watch the model download finish (~5 GB)
+docker compose logs -f ollama-init
+```
+
+`appsettings.json` already points at `localhost:27017` and `localhost:11434`, so no configuration changes are needed. Stop everything with `docker compose down` (add `-v` to also wipe the model and the database).
 
 ## Run it
 
 ```bash
-# terminal 1 — Ollama
-ollama serve            # usually already running on http://localhost:11434
-
-# terminal 2 — the API
 cd ToolCallingDemo
 dotnet build
 dotnet run --urls http://localhost:5000
-```
-
-Seed a demo order (optional, for the MongoDB tool):
-
-```bash
-docker exec -i $(docker ps -qf ancestor=mongo) mongosh shopdemo --eval \
-  'db.orders.insertOne({Code:"ORD-1024",Status:"shipped",Total:NumberDecimal("149.90"),EstimatedDelivery:"2026-07-30"})'
 ```
 
 ## Try it
@@ -55,6 +58,8 @@ curl http://localhost:5000/assistant \
 ## Project structure
 
 ```
+docker-compose.yml                        # MongoDB (seeded) + Ollama + model pull
+mongo-init/init-orders.js                 # seeds ORD-1024 on first start
 ToolCallingDemo/
 ├── Program.cs
 ├── appsettings.json                      # Ollama / Mongo / ExchangeRates config

@@ -1,0 +1,37 @@
+# External dependencies for ToolCallingDemo — no local installs needed.
+#   docker compose up -d          → MongoDB (seeded) + Ollama + llama3.1 auto-pull
+# The API itself runs on the host with `dotnet run` (appsettings.json already
+# points at localhost:27017 and localhost:11434).
+services:
+  mongodb:
+    image: mongo:7
+    container_name: toolcalling-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: shopdemo
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: toolcalling-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  # One-shot: pulls the chat model into the ollama service, then exits.
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "llama3.1"]
+    restart: "no"
+
+volumes:
+  mongo-data:
+  ollama-data:
